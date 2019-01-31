@@ -69,4 +69,11 @@ anychart.onDocumentReady(function() {
 
     //initiate map drawing
     map.draw();
+
+    var area = anychart.area();
+    area.title('Spline Area Chart');
+    area.bounds(0, '5%', '100%', '30%');
+    area.splineArea(dataSet);
+    area.container('container');
+    area.draw();
 });
