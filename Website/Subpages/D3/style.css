@@ -1,3 +1,23 @@
+#mariomaker {
+  border-radius: 10px;
+}
+
+.chart::before {
+  position: absolute;
+  top: 200px;
+  left: 200px;
+  z-index: -1;
+  display: block;
+  width: 600px;
+  height: 300px;
+  content: " ";
+  background-image: url("marioMaker.png");
+  background-repeat: no-repeat;
+  background-position: 80% 0;
+  background-size: cover;
+  opacity: 0.5;
+}
+
 .tooltip {
   position: absolute;
   width: 135px;
@@ -12,9 +32,24 @@
   border-radius: 10px;
 }
 
-.axisText {
-  font-family: sans-serif;
+.rectangle {
+  fill: rgb(0, 47, 255);
+}
+
+.rectangle:hover {
+  fill: rgb(255, 0, 76);
+}
+
+.axis {
+  font: 15px sans-serif;
   font-weight: bold;
-  fill: #551aaf;
-  text-anchor: middle;
+  fill: rgb(255, 81, 0);
+  text-anchor: right;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
 }
