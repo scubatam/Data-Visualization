@@ -1,106 +1,121 @@
-var svgWidth = 960;
-var svgHeight = 500;
+//Set up pixel positioning
+var margin = {top: 150, right: 150, bottom: 150, left: 150};
+var width = 1400 - margin.left - margin.right;
+var height = 700 - margin.top - margin.bottom;
 
-var margin = {
-  top: 20,
-  right: 40,
-  bottom: 60,
-  left: 100
-};
+//Configure svg wrapper, group and attributes using D3
+var svg = d3.select("body").append("svg")
+	.attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+	.append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-var width = svgWidth - margin.left - margin.right;
-var height = svgHeight - margin.top - margin.bottom;
+//Pull data from csv using D3
+d3.csv("marioData.csv", function(error, data){
 
-// Create an SVG wrapper, append an SVG group that will hold our chart, and shift the latter by left and top margins.
-var svg = d3.select(".chart")
-  .append("svg")
-  .attr("width", svgWidth)
-  .attr("height", svgHeight);
+//Get column and row values
+	var elements = Object.keys(data[0])
+		.filter(function(d){
+      return (d != "country");
+		});
+	var selection = elements[0];
 
-var chartGroup = svg.append("g")
-  .attr("transform", `translate(${margin.left}, ${margin.top})`);
+//Set up X and Y axis variables
+	var y = d3.scale.linear()
+			.domain([0, d3.max(data, function(d){
+				return +d[selection];
+			})])
+			.range([height, 0]);
 
-// Import Data
-d3.csv("hairData.csv")
-  .then(function(hairData) {
+	var x = d3.scale.ordinal()
+			.domain(data.map(function(d){ return d.country;}))
+			.rangeBands([0, width]);
 
-    // Step 1: Parse Data/Cast as numbers
-    // ==============================
-    hairData.forEach(function(data) {
-      data.hair_length = +data.hair_length;
-      data.num_hits = +data.num_hits;
-    });
+//Create scales
+	var xAxis = d3.svg.axis()
+		.scale(x)
+	    .orient("bottom");
 
-    // Step 2: Create scale functions
-    // ==============================
-    var xLinearScale = d3.scaleLinear()
-      .domain([20, d3.max(hairData, d => d.hair_length)])
-      .range([0, width]);
+	var yAxis = d3.svg.axis()
+		.scale(y)
+	    .orient("left");
 
-    var yLinearScale = d3.scaleLinear()
-      .domain([0, d3.max(hairData, d => d.num_hits)])
-      .range([height, 0]);
+//Set up how SVG performs
+	svg.append("g")
+    	.attr("class", "x axis")
+    	.attr("transform", "translate(0," + height + ")")
+    	.call(xAxis)
+    	.selectAll("text")
+    	.style("font-size", "15px")
+      	.style("text-anchor", "end")
+      	.attr("dx", "-.8em")
+      	.attr("dy", "-.55em")
+      	.attr("transform", "rotate(-90)" );
 
-    // Step 3: Create axis functions
-    // ==============================
-    var bottomAxis = d3.axisBottom(xLinearScale);
-    var leftAxis = d3.axisLeft(yLinearScale);
+ 	svg.append("g")
+    	.attr("class", "y axis")
+    	.call(yAxis);
 
-    // Step 4: Append Axes to the chart
-    // ==============================
-    chartGroup.append("g")
-      .attr("transform", `translate(0, ${height})`)
-      .call(bottomAxis);
+	svg.selectAll("rectangle")
+		.data(data)
+		.enter()
+		.append("rect")
+		.attr("class","rectangle")
+		.attr("width", width/data.length)
+		.attr("height", function(d){
+			return height - y(+d[selection]);
+		})
+		.attr("x", function(d, i){
+			return (width / data.length) * i ;
+		})
+		.attr("y", function(d){
+			return y(+d[selection]);
+		})
+		.append("title")
+		.text(function(d){
+			return d.country + " : " + d[selection];
+		});
+//Drop down
+	var selector = d3.select("#drop")
+		.append("select")
+		.attr("id","dropdown")
+		.on("change", function(d){
+				selection = document.getElementById("dropdown");
 
-    chartGroup.append("g")
-      .call(leftAxis);
+				y.domain([0, d3.max(data, function(d){
+			return +d[selection.value];})]);
 
-    // Step 5: Create Circles
-    // ==============================
-    var circlesGroup = chartGroup.selectAll("circle")
-    .data(hairData)
-    .enter()
-    .append("circle")
-    .attr("cx", d => xLinearScale(d.hair_length))
-    .attr("cy", d => yLinearScale(d.num_hits))
-    .attr("r", "15")
-    .attr("fill", "pink")
-    .attr("opacity", ".5");
+				yAxis.scale(y);
 
-    // Step 6: Initialize tool tip
-    // ==============================
-    var toolTip = d3.tip()
-      .attr("class", "tooltip")
-      .offset([80, -60])
-      .html(function(d) {
-        return (`${d.rockband}<br>Hair length: ${d.hair_length}<br>Hits: ${d.num_hits}`);
-      });
+				d3.selectAll(".rectangle")
+						.transition()
+						.attr("height", function(d){
+				return height - y(+d[selection.value]);
+			})
+			.attr("x", function(d, i){
+				return (width / data.length) * i ;
+			})
+			.attr("y", function(d){
+				return y(+d[selection.value]);
+			})
+						.ease("linear")
+						.select("title")
+						.text(function(d){
+							return d.country + " : " + d[selection.value];
+						});
+		
+					d3.selectAll("g.y.axis")
+						.transition()
+						.call(yAxis);
+			});
 
-    // Step 7: Create tooltip in the chart
-    // ==============================
-    chartGroup.call(toolTip);
-
-    // Step 8: Create event listeners to display and hide the tooltip
-    // ==============================
-    circlesGroup.on("click", function(data) {
-      toolTip.show(data, this);
-    })
-      // onmouseout event
-      .on("mouseout", function(data, index) {
-        toolTip.hide(data);
-      });
-
-    // Create axes labels
-    chartGroup.append("text")
-      .attr("transform", "rotate(-90)")
-      .attr("y", 0 - margin.left + 40)
-      .attr("x", 0 - (height / 2))
-      .attr("dy", "1em")
-      .attr("class", "axisText")
-      .text("Number of Billboard 100 Hits");
-
-    chartGroup.append("text")
-      .attr("transform", `translate(${width / 2}, ${height + margin.top + 30})`)
-      .attr("class", "axisText")
-      .text("Hair Metal Band Hair Length (inches)");
-  });
+    selector.selectAll("option")
+      .data(elements)
+      .enter().append("option")
+      .attr("value", function(d){
+        return d;
+      })
+      .text(function(d){
+        return d;
+      })
+});
